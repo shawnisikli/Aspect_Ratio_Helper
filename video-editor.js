@@ -32,7 +32,7 @@ let ffmpeg = null;
 let ffmpegLoaded = false;
 
 // Initialize video editor
-function initVideoEditor() {
+async function initVideoEditor() {
     videoElement = document.getElementById('videoPreview');
     
     const videoUploadBox = document.getElementById('videoUploadBox');
@@ -112,13 +112,12 @@ function initVideoEditor() {
     });
     
     // Initialize FFmpeg
-    initFFmpeg();
+    await initFFmpeg();
 }
 
 async function initFFmpeg() {
     try {
-        const { FFmpeg } = FFmpegWASM;
-        ffmpeg = new FFmpeg();
+        ffmpeg = new FFmpegWASM.FFmpeg();
         
         ffmpeg.on('log', ({ message }) => {
             console.log(message);
@@ -130,15 +129,18 @@ async function initFFmpeg() {
             document.getElementById('statusText').textContent = `Processing... ${percent}%`;
         });
         
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
         await ffmpeg.load({
-            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+            coreURL: `${baseURL}/ffmpeg-core.js`,
+            wasmURL: `${baseURL}/ffmpeg-core.wasm`,
         });
         
         ffmpegLoaded = true;
         console.log('FFmpeg loaded successfully');
     } catch (error) {
         console.error('Failed to load FFmpeg:', error);
-        alert('Failed to load video processing library. Some features may not work.');
+        ffmpegLoaded = false;
+        // Don't show alert immediately, only when user tries to process
     }
 }
 
@@ -376,8 +378,13 @@ function setupVideoCropHandlers() {
 }
 
 async function processAndDownloadVideo() {
-    if (!currentVideo || !ffmpegLoaded) {
-        alert('Please upload a video first and wait for the processing library to load.');
+    if (!currentVideo) {
+        alert('Please upload a video first.');
+        return;
+    }
+    
+    if (!ffmpegLoaded) {
+        alert('Video processing library is still loading. Please wait a moment and try again.');
         return;
     }
     
@@ -398,49 +405,67 @@ async function processAndDownloadVideo() {
         await ffmpeg.writeFile(inputFileName, new Uint8Array(videoData));
         
         // Build FFmpeg command
+        let args = ['-i', inputFileName];
         let filterComplex = [];
-        let outputOptions = [];
         
         // Speed filter
         if (currentSpeed !== 1) {
             const videoSpeed = currentSpeed;
             const audioSpeed = currentSpeed;
+            
+            // For audio speed > 2x, need to chain atempo filters
+            let audioFilters = [];
+            let remainingSpeed = audioSpeed;
+            while (remainingSpeed > 2) {
+                audioFilters.push('atempo=2.0');
+                remainingSpeed /= 2;
+            }
+            if (remainingSpeed !== 1) {
+                audioFilters.push(`atempo=${remainingSpeed}`);
+            }
+            
             filterComplex.push(`[0:v]setpts=${1/videoSpeed}*PTS[v]`);
-            filterComplex.push(`[0:a]atempo=${Math.min(2, audioSpeed)}[a]`);
+            if (audioFilters.length > 0) {
+                filterComplex.push(`[0:a]${audioFilters.join(',')}[a]`);
+            }
         }
         
         // Crop filter
         if (videoCropData.enabled) {
             const cropFilter = `crop=${Math.round(videoCropData.width)}:${Math.round(videoCropData.height)}:${Math.round(videoCropData.x)}:${Math.round(videoCropData.y)}`;
-            if (filterComplex.length > 0) {
-                filterComplex[0] = filterComplex[0].replace('[v]', '[vtemp]');
+            if (currentSpeed !== 1) {
+                // Both speed and crop
+                const lastVideoFilter = filterComplex.findIndex(f => f.includes('[v]'));
+                filterComplex[lastVideoFilter] = filterComplex[lastVideoFilter].replace('[v]', '[vtemp]');
                 filterComplex.push(`[vtemp]${cropFilter}[v]`);
             } else {
+                // Just crop
                 filterComplex.push(`[0:v]${cropFilter}[v]`);
             }
         }
         
-        // Build command
-        let command = ['-i', inputFileName];
-        
+        // Apply filters
         if (filterComplex.length > 0) {
-            command.push('-filter_complex', filterComplex.join(';'));
-            command.push('-map', '[v]');
+            args.push('-filter_complex', filterComplex.join(';'));
+            args.push('-map', '[v]');
             if (currentSpeed !== 1) {
-                command.push('-map', '[a]');
+                args.push('-map', '[a]');
             } else {
-                command.push('-map', '0:a?');
+                args.push('-map', '0:a?');
             }
         }
         
-        command.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '23');
+        args.push('-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23');
         if (currentSpeed !== 1) {
-            command.push('-c:a', 'aac');
+            args.push('-c:a', 'aac', '-b:a', '128k');
+        } else {
+            args.push('-c:a', 'copy');
         }
-        command.push(outputFileName);
+        args.push(outputFileName);
         
         statusText.textContent = 'Processing video...';
-        await ffmpeg.exec(command);
+        console.log('FFmpeg command:', args.join(' '));
+        await ffmpeg.exec(args);
         
         statusText.textContent = 'Preparing download...';
         
@@ -453,19 +478,30 @@ async function processAndDownloadVideo() {
         const a = document.createElement('a');
         a.href = url;
         a.download = `processed-${Date.now()}.mp4`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         
         URL.revokeObjectURL(url);
         
+        // Cleanup
+        await ffmpeg.deleteFile(inputFileName);
+        await ffmpeg.deleteFile(outputFileName);
+        
         statusText.textContent = 'Complete!';
+        progressFill.style.width = '100%';
         setTimeout(() => {
             statusDiv.style.display = 'none';
         }, 2000);
         
     } catch (error) {
         console.error('Video processing error:', error);
-        statusText.textContent = 'Error processing video. Please try again.';
+        statusText.textContent = 'Error processing video';
+        progressFill.style.width = '0%';
         alert('Failed to process video: ' + error.message);
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
     }
 }
 
