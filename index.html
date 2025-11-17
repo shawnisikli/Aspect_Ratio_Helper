@@ -13,6 +13,12 @@
             <p class="subtitle">Calculate and maintain perfect aspect ratios for your images and videos</p>
         </header>
 
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="calculator">Calculator</button>
+            <button class="tab-btn" data-tab="editor">Image Editor</button>
+        </div>
+
+        <div class="tab-content active" id="calculator">
         <div class="grid">
             <!-- Preset Ratios Section -->
             <div class="card">
@@ -119,8 +125,71 @@
                 </div>
             </div>
         </div>
+        </div>
+
+        <div class="tab-content" id="editor">
+            <div class="editor-container">
+                <div class="upload-section">
+                    <div class="upload-box" id="uploadBox">
+                        <input type="file" id="imageInput" accept="image/*" hidden>
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <h3>Upload Image</h3>
+                        <p>Click to select, drag and drop, or press Ctrl+V to paste</p>
+                    </div>
+                </div>
+
+                <div class="editor-main" id="editorMain" style="display: none;">
+                    <div class="editor-sidebar">
+                        <div class="card">
+                            <h2>Image Info</h2>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Original Size</span>
+                                    <span class="info-value" id="imageSize">—</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Aspect Ratio</span>
+                                    <span class="info-value" id="imageRatio">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>Crop to Ratio</h2>
+                            <div class="crop-ratios" id="cropRatios"></div>
+                            <button id="resetCrop" class="btn-secondary" style="width: 100%; margin-top: 1rem;">Reset Crop</button>
+                        </div>
+
+                        <div class="card">
+                            <h2>Actions</h2>
+                            <button id="downloadBtn" class="btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Download Cropped</button>
+                            <button id="newImageBtn" class="btn-secondary" style="width: 100%;">Upload New Image</button>
+                        </div>
+                    </div>
+
+                    <div class="canvas-container">
+                        <div class="canvas-wrapper" id="canvasWrapper">
+                            <canvas id="imageCanvas"></canvas>
+                            <div class="crop-overlay" id="cropOverlay">
+                                <div class="crop-box" id="cropBox">
+                                    <div class="crop-handle nw"></div>
+                                    <div class="crop-handle ne"></div>
+                                    <div class="crop-handle sw"></div>
+                                    <div class="crop-handle se"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
+    <script src="editor.js"></script>
 </body>
 </html>
