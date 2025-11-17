@@ -199,8 +199,11 @@
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
                         </svg>
                         <h3>Upload Video</h3>
-                        <p>Click to select or drag and drop</p>
+                        <p>Click to select, drag and drop, or press Ctrl+V to paste</p>
                         <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Supports MP4, WebM, MOV, and more</p>
+                        <div id="ffmpegLoadingStatus" style="margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; display: none;">
+                            <p style="margin: 0; font-size: 0.9rem; color: var(--accent-light);">⏳ Loading video processor...</p>
+                        </div>
                     </div>
                 </div>
 
@@ -257,10 +260,8 @@
 
                         <div class="card">
                             <h2>Export</h2>
-                            <div class="export-info">
-                                <p class="help-text">Processing may take a few moments depending on video length and settings.</p>
-                            </div>
-                            <button id="processVideo" class="btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Process & Download</button>
+                            <button id="processVideo" class="btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Apply Changes</button>
+                            <button id="downloadVideo" class="btn-primary" style="width: 100%; margin-bottom: 0.5rem; display: none;">Download Processed Video</button>
                             <button id="newVideoBtn" class="btn-secondary" style="width: 100%;">Upload New Video</button>
                             <div id="processingStatus" class="processing-status" style="display: none;">
                                 <div class="progress-bar">
@@ -272,15 +273,25 @@
                     </div>
 
                     <div class="video-preview-container">
-                        <div class="video-wrapper" id="videoWrapper">
-                            <video id="videoPreview" controls></video>
-                            <div class="video-crop-overlay" id="videoCropOverlay" style="display: none;">
-                                <div class="crop-box" id="videoCropBox">
-                                    <div class="crop-handle nw"></div>
-                                    <div class="crop-handle ne"></div>
-                                    <div class="crop-handle sw"></div>
-                                    <div class="crop-handle se"></div>
+                        <div class="video-preview-section">
+                            <h3 style="margin-bottom: 0.5rem; color: var(--text-secondary);">Original</h3>
+                            <div class="video-wrapper" id="videoWrapper">
+                                <video id="videoPreview" controls></video>
+                                <div class="video-crop-overlay" id="videoCropOverlay" style="display: none;">
+                                    <div class="crop-box" id="videoCropBox">
+                                        <div class="crop-handle nw"></div>
+                                        <div class="crop-handle ne"></div>
+                                        <div class="crop-handle sw"></div>
+                                        <div class="crop-handle se"></div>
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="video-preview-section" id="processedPreviewSection" style="display: none;">
+                            <h3 style="margin-bottom: 0.5rem; color: var(--success);">Processed Preview</h3>
+                            <div class="video-wrapper">
+                                <video id="processedVideoPreview" controls></video>
                             </div>
                         </div>
                     </div>
@@ -288,11 +299,10 @@
             </div>
         </div>
     </div>
-
+    
     <script src="script.js"></script>
     <script src="editor.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+    <script src="lib/ffmpeg.min.js"></script>
     <script src="video-editor.js"></script>
 </body>
 </html>

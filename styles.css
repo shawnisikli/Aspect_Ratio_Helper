@@ -695,11 +695,18 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .video-preview-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.video-preview-section {
+    flex: 1;
+    min-width: 300px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 1.5rem;
-    overflow: hidden;
+    padding: 1rem;
 }
 
 .video-wrapper {
@@ -708,10 +715,11 @@ input[type="range"]::-moz-range-thumb:hover {
     max-width: 100%;
 }
 
-#videoPreview {
+#videoPreview,
+#processedVideoPreview {
     display: block;
     max-width: 100%;
-    max-height: 600px;
+    max-height: 500px;
     border-radius: 8px;
 }
 

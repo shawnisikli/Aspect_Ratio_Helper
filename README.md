@@ -29,9 +29,37 @@ A modern web-based tool for calculating and maintaining aspect ratios for images
 
 ## Usage
 
-Simply open `index.html` in your web browser. No installation or build process required!
+**Important for Video Editor**: To use the video processing features, you must:
+1. Download FFmpeg library files (see Setup below)
+2. Run the app through a local web server
 
-**Note**: Video processing uses FFmpeg.wasm which loads on page load. Wait for it to initialize before processing videos.
+### Setup:
+
+**1. Download FFmpeg files** (required for video editing):
+```bash
+mkdir lib
+curl -o lib/ffmpeg.min.js https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js
+curl -o lib/814.ffmpeg.js https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js
+curl -o lib/ffmpeg-core.js https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js
+curl -o lib/ffmpeg-core.wasm https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm
+```
+
+**2. Start local server:**
+```bash
+python -m http.server 8000
+```
+
+**3. Open in browser:**
+```
+http://localhost:8000/index.html
+```
+
+Alternatively, you can use any other local server like:
+- Node.js: `npx serve`
+- PHP: `php -S localhost:8000`
+- VS Code: Install "Live Server" extension
+
+**Note**: The image editor and calculator work when opening the HTML file directly, but video processing requires the local server and FFmpeg files.
 
 ## Technologies
 

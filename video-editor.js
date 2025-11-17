@@ -3,6 +3,8 @@ let currentVideo = null;
 let videoElement = null;
 let currentSpeed = 1;
 let originalDuration = 0;
+let processedVideoBlob = null;
+let processedVideoURL = null;
 let videoCropData = {
     x: 0,
     y: 0,
@@ -30,9 +32,10 @@ const VIDEO_CROP_RATIOS = [
 // FFmpeg instance
 let ffmpeg = null;
 let ffmpegLoaded = false;
+let ffmpegLoading = false;
 
 // Initialize video editor
-async function initVideoEditor() {
+function initVideoEditor() {
     videoElement = document.getElementById('videoPreview');
     
     const videoUploadBox = document.getElementById('videoUploadBox');
@@ -42,10 +45,14 @@ async function initVideoEditor() {
     const resetVideoCrop = document.getElementById('resetVideoCrop');
     const customSpeed = document.getElementById('customSpeed');
     const applyCustomSpeed = document.getElementById('applyCustomSpeed');
+    const loadFFmpegBtn = document.getElementById('loadFFmpegBtn');
     
     // Upload handlers
     videoUploadBox.addEventListener('click', () => videoInput.click());
     videoInput.addEventListener('change', handleVideoUpload);
+    
+    // Paste handler (Ctrl+V)
+    document.addEventListener('paste', handleVideoPaste);
     
     // Drag and drop
     videoUploadBox.addEventListener('dragover', (e) => {
@@ -68,6 +75,12 @@ async function initVideoEditor() {
     
     // Action buttons
     processVideo.addEventListener('click', processAndDownloadVideo);
+    document.getElementById('downloadVideo').addEventListener('click', downloadProcessedVideo);
+    if (loadFFmpegBtn) {
+        loadFFmpegBtn.addEventListener('click', loadFFmpegManually);
+        loadFFmpegBtn.style.display = 'block';
+    }
+    
     newVideoBtn.addEventListener('click', () => {
         document.getElementById('videoEditorMain').style.display = 'none';
         document.querySelector('.upload-section').style.display = 'flex';
@@ -110,38 +123,129 @@ async function initVideoEditor() {
         updateVideoInfo();
         resetVideoCropArea();
     });
-    
-    // Initialize FFmpeg
-    await initFFmpeg();
 }
 
-async function initFFmpeg() {
+function handleVideoPaste(e) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('video') !== -1) {
+            const blob = items[i].getAsFile();
+            loadVideo(blob);
+            e.preventDefault();
+            break;
+        }
+    }
+}
+
+async function loadFFmpegManually() {
+    const loadBtn = document.getElementById('loadFFmpegBtn');
+    if (loadBtn) {
+        loadBtn.textContent = 'Loading... (may take 30-60 seconds)';
+        loadBtn.disabled = true;
+    }
+    
+    const success = await loadFFmpegLibrary();
+    
+    if (!success && loadBtn) {
+        loadBtn.textContent = 'Retry Load Processor';
+        loadBtn.disabled = false;
+    }
+}
+
+async function loadFFmpegLibrary() {
+    if (ffmpegLoading || ffmpegLoaded) return true;
+    
+    ffmpegLoading = true;
+    const loadingStatus = document.getElementById('ffmpegLoadingStatus');
+    if (loadingStatus) {
+        loadingStatus.style.display = 'block';
+        loadingStatus.innerHTML = '<p style="margin: 0; font-size: 0.9rem; color: var(--accent-light);">⏳ Loading video processor (30-60 seconds)...</p>';
+    }
+    
     try {
-        ffmpeg = new FFmpegWASM.FFmpeg();
+        // FFmpeg is loaded from script tag in HTML
+        console.log('Initializing FFmpeg from local files...');
+        
+        if (typeof FFmpegWASM === 'undefined') {
+            throw new Error('FFmpeg library not loaded correctly');
+        }
+        
+        const { FFmpeg } = FFmpegWASM;
+        ffmpeg = new FFmpeg();
         
         ffmpeg.on('log', ({ message }) => {
-            console.log(message);
+            console.log('FFmpeg:', message);
         });
         
         ffmpeg.on('progress', ({ progress }) => {
             const percent = Math.round(progress * 100);
-            document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('statusText').textContent = `Processing... ${percent}%`;
+            const progressFill = document.getElementById('progressFill');
+            const statusText = document.getElementById('statusText');
+            if (progressFill && statusText) {
+                progressFill.style.width = percent + '%';
+                statusText.textContent = `Processing... ${percent}%`;
+            }
         });
         
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+        console.log('Loading FFmpeg core...');
         await ffmpeg.load({
-            coreURL: `${baseURL}/ffmpeg-core.js`,
-            wasmURL: `${baseURL}/ffmpeg-core.wasm`,
+            coreURL: '/lib/ffmpeg-core.js',
+            wasmURL: '/lib/ffmpeg-core.wasm'
         });
         
         ffmpegLoaded = true;
-        console.log('FFmpeg loaded successfully');
+        ffmpegLoading = false;
+        console.log('✓ FFmpeg loaded successfully');
+        
+        if (loadingStatus) {
+            loadingStatus.innerHTML = '<p style="margin: 0; font-size: 0.9rem; color: var(--success);">✓ Video processor ready!</p>';
+            setTimeout(() => {
+                loadingStatus.style.display = 'none';
+            }, 3000);
+        }
+        
+        const loadBtn = document.getElementById('loadFFmpegBtn');
+        if (loadBtn) {
+            loadBtn.style.display = 'none';
+        }
+        
+        return true;
     } catch (error) {
         console.error('Failed to load FFmpeg:', error);
         ffmpegLoaded = false;
-        // Don't show alert immediately, only when user tries to process
+        ffmpegLoading = false;
+        
+        if (loadingStatus) {
+            loadingStatus.innerHTML = `<p style="margin: 0; font-size: 0.9rem; color: #ef4444;">⚠ Failed to load: ${error.message}</p>`;
+        }
+        
+        return false;
     }
+}
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        // Check if already loaded
+        if (document.querySelector(`script[src="${src}"]`)) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = false; // Ensure sequential loading
+        script.onload = () => {
+            console.log(`Loaded: ${src}`);
+            resolve();
+        };
+        script.onerror = (e) => {
+            console.error(`Failed to load: ${src}`, e);
+            reject(new Error(`Failed to load ${src}`));
+        };
+        document.head.appendChild(script);
+    });
 }
 
 function renderVideoCropRatios() {
@@ -167,6 +271,16 @@ function handleVideoUpload(e) {
 
 function loadVideo(file) {
     currentVideo = file;
+    
+    // Clean up processed video if exists
+    if (processedVideoURL) {
+        URL.revokeObjectURL(processedVideoURL);
+        processedVideoURL = null;
+    }
+    processedVideoBlob = null;
+    document.getElementById('downloadVideo').style.display = 'none';
+    document.getElementById('processedPreviewSection').style.display = 'none';
+    
     const url = URL.createObjectURL(file);
     videoElement.src = url;
     
@@ -276,7 +390,6 @@ function setupVideoCropHandlers() {
     const cropBox = document.getElementById('videoCropBox');
     const handles = document.querySelectorAll('#videoCropBox .crop-handle');
     
-    // Drag crop box
     cropBox.addEventListener('mousedown', (e) => {
         if (!videoCropData.enabled) return;
         if (e.target.classList.contains('crop-handle')) return;
@@ -286,7 +399,6 @@ function setupVideoCropHandlers() {
         e.preventDefault();
     });
     
-    // Resize handles
     handles.forEach(handle => {
         handle.addEventListener('mousedown', (e) => {
             if (!videoCropData.enabled) return;
@@ -299,7 +411,6 @@ function setupVideoCropHandlers() {
         });
     });
     
-    // Mouse move
     document.addEventListener('mousemove', (e) => {
         if (!videoIsDragging && !videoIsResizing) return;
         if (!videoCropData.enabled) return;
@@ -335,7 +446,6 @@ function setupVideoCropHandlers() {
                 videoCropData.height += deltaY;
             }
             
-            // Maintain aspect ratio
             if (videoCropData.ratio) {
                 const targetRatio = videoCropData.ratio.width / videoCropData.ratio.height;
                 
@@ -352,7 +462,6 @@ function setupVideoCropHandlers() {
                 }
             }
             
-            // Constrain to video
             if (videoCropData.x < 0 || videoCropData.y < 0 || 
                 videoCropData.x + videoCropData.width > videoElement.videoWidth ||
                 videoCropData.y + videoCropData.height > videoElement.videoHeight ||
@@ -369,7 +478,6 @@ function setupVideoCropHandlers() {
         updateVideoCropBox();
     });
     
-    // Mouse up
     document.addEventListener('mouseup', () => {
         videoIsDragging = false;
         videoIsResizing = false;
@@ -384,8 +492,16 @@ async function processAndDownloadVideo() {
     }
     
     if (!ffmpegLoaded) {
-        alert('Video processing library is still loading. Please wait a moment and try again.');
-        return;
+        const load = confirm('Video processor not loaded yet. Load it now? (This will take 30-60 seconds)');
+        if (load) {
+            const success = await loadFFmpegLibrary();
+            if (!success) {
+                alert('Failed to load video processor. Please try refreshing the page.');
+                return;
+            }
+        } else {
+            return;
+        }
     }
     
     const statusDiv = document.getElementById('processingStatus');
@@ -397,35 +513,58 @@ async function processAndDownloadVideo() {
     statusText.textContent = 'Loading video...';
     
     try {
-        // Read video file
         const videoData = await currentVideo.arrayBuffer();
         const inputFileName = 'input.mp4';
         const outputFileName = 'output.mp4';
         
         await ffmpeg.writeFile(inputFileName, new Uint8Array(videoData));
         
-        // Build FFmpeg command
+        // Check for audio stream by examining FFmpeg logs
+        statusText.textContent = 'Analyzing video...';
+        let hasAudio = false;
+        let ffmpegLogs = [];
+        
+        // Temporarily capture logs
+        const originalLogHandler = ffmpeg.on('log', () => {});
+        ffmpeg.on('log', ({ message }) => {
+            ffmpegLogs.push(message);
+        });
+        
+        try {
+            await ffmpeg.exec(['-i', inputFileName, '-f', 'null', '-']);
+        } catch (e) {
+            // Expected to fail, we just want the logs
+        }
+        
+        // Check if logs mention audio stream
+        const logsText = ffmpegLogs.join('\n');
+        hasAudio = /Stream #\d+:\d+.*Audio/.test(logsText);
+        console.log('Video has audio:', hasAudio);
+        
+        // Restore original log handler
+        ffmpeg.on('log', ({ message }) => {
+            console.log('FFmpeg:', message);
+        });
+        
         let args = ['-i', inputFileName];
         let filterComplex = [];
         
         // Speed filter
         if (currentSpeed !== 1) {
             const videoSpeed = currentSpeed;
-            const audioSpeed = currentSpeed;
-            
-            // For audio speed > 2x, need to chain atempo filters
             let audioFilters = [];
-            let remainingSpeed = audioSpeed;
+            let remainingSpeed = currentSpeed;
+            
             while (remainingSpeed > 2) {
                 audioFilters.push('atempo=2.0');
                 remainingSpeed /= 2;
             }
-            if (remainingSpeed !== 1) {
-                audioFilters.push(`atempo=${remainingSpeed}`);
+            if (remainingSpeed > 1.001 || remainingSpeed < 0.999) {
+                audioFilters.push(`atempo=${remainingSpeed.toFixed(3)}`);
             }
             
-            filterComplex.push(`[0:v]setpts=${1/videoSpeed}*PTS[v]`);
-            if (audioFilters.length > 0) {
+            filterComplex.push(`[0:v]setpts=${(1/videoSpeed).toFixed(3)}*PTS[v]`);
+            if (audioFilters.length > 0 && hasAudio) {
                 filterComplex.push(`[0:a]${audioFilters.join(',')}[a]`);
             }
         }
@@ -434,12 +573,10 @@ async function processAndDownloadVideo() {
         if (videoCropData.enabled) {
             const cropFilter = `crop=${Math.round(videoCropData.width)}:${Math.round(videoCropData.height)}:${Math.round(videoCropData.x)}:${Math.round(videoCropData.y)}`;
             if (currentSpeed !== 1) {
-                // Both speed and crop
                 const lastVideoFilter = filterComplex.findIndex(f => f.includes('[v]'));
                 filterComplex[lastVideoFilter] = filterComplex[lastVideoFilter].replace('[v]', '[vtemp]');
                 filterComplex.push(`[vtemp]${cropFilter}[v]`);
             } else {
-                // Just crop
                 filterComplex.push(`[0:v]${cropFilter}[v]`);
             }
         }
@@ -448,17 +585,19 @@ async function processAndDownloadVideo() {
         if (filterComplex.length > 0) {
             args.push('-filter_complex', filterComplex.join(';'));
             args.push('-map', '[v]');
-            if (currentSpeed !== 1) {
+            if (currentSpeed !== 1 && filterComplex.some(f => f.includes('[a]')) && hasAudio) {
                 args.push('-map', '[a]');
-            } else {
+            } else if (hasAudio) {
                 args.push('-map', '0:a?');
             }
+        } else if (hasAudio) {
+            args.push('-map', '0:a?');
         }
         
         args.push('-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23');
-        if (currentSpeed !== 1) {
+        if (currentSpeed !== 1 && hasAudio) {
             args.push('-c:a', 'aac', '-b:a', '128k');
-        } else {
+        } else if (hasAudio) {
             args.push('-c:a', 'copy');
         }
         args.push(outputFileName);
@@ -467,28 +606,30 @@ async function processAndDownloadVideo() {
         console.log('FFmpeg command:', args.join(' '));
         await ffmpeg.exec(args);
         
-        statusText.textContent = 'Preparing download...';
+        statusText.textContent = 'Preparing preview...';
         
-        // Read output file
         const data = await ffmpeg.readFile(outputFileName);
-        const blob = new Blob([data.buffer], { type: 'video/mp4' });
-        const url = URL.createObjectURL(blob);
+        processedVideoBlob = new Blob([data.buffer], { type: 'video/mp4' });
         
-        // Download
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `processed-${Date.now()}.mp4`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        // Clean up old URL if exists
+        if (processedVideoURL) {
+            URL.revokeObjectURL(processedVideoURL);
+        }
+        processedVideoURL = URL.createObjectURL(processedVideoBlob);
         
-        URL.revokeObjectURL(url);
+        // Show processed preview section
+        const processedSection = document.getElementById('processedPreviewSection');
+        const processedVideo = document.getElementById('processedVideoPreview');
+        processedVideo.src = processedVideoURL;
+        processedSection.style.display = 'block';
         
-        // Cleanup
+        // Show download button
+        document.getElementById('downloadVideo').style.display = 'block';
+        
         await ffmpeg.deleteFile(inputFileName);
         await ffmpeg.deleteFile(outputFileName);
         
-        statusText.textContent = 'Complete!';
+        statusText.textContent = 'Preview ready!';
         progressFill.style.width = '100%';
         setTimeout(() => {
             statusDiv.style.display = 'none';
@@ -498,11 +639,24 @@ async function processAndDownloadVideo() {
         console.error('Video processing error:', error);
         statusText.textContent = 'Error processing video';
         progressFill.style.width = '0%';
-        alert('Failed to process video: ' + error.message);
         setTimeout(() => {
             statusDiv.style.display = 'none';
         }, 3000);
     }
+}
+
+function downloadProcessedVideo() {
+    if (!processedVideoBlob) {
+        alert('No processed video available. Please apply changes first.');
+        return;
+    }
+    
+    const a = document.createElement('a');
+    a.href = processedVideoURL;
+    a.download = `processed-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
 
 function calculateGCD(a, b) {
