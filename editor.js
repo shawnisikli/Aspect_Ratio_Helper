@@ -185,15 +185,17 @@ function selectCropRatio(ratio, btnElement) {
     cropData.ratio = ratio.width && ratio.height ? { width: ratio.width, height: ratio.height } : null;
     
     if (cropData.ratio) {
-        // Adjust crop area to match ratio
+        // Calculate maximum crop area that fits within canvas at target ratio
         const targetRatio = cropData.ratio.width / cropData.ratio.height;
-        const currentRatio = cropData.width / cropData.height;
+        const canvasRatio = canvas.width / canvas.height;
         
-        if (currentRatio > targetRatio) {
-            // Too wide, adjust width
+        if (canvasRatio > targetRatio) {
+            // Canvas is wider than target ratio, constrain by height
+            cropData.height = canvas.height;
             cropData.width = cropData.height * targetRatio;
         } else {
-            // Too tall, adjust height
+            // Canvas is taller than target ratio, constrain by width
+            cropData.width = canvas.width;
             cropData.height = cropData.width / targetRatio;
         }
         
@@ -300,16 +302,36 @@ function setupCropHandlers() {
             if (cropData.x < 0) {
                 cropData.width += cropData.x;
                 cropData.x = 0;
+                // Recalculate height if ratio is locked
+                if (cropData.ratio) {
+                    const targetRatio = cropData.ratio.width / cropData.ratio.height;
+                    cropData.height = cropData.width / targetRatio;
+                }
             }
             if (cropData.y < 0) {
                 cropData.height += cropData.y;
                 cropData.y = 0;
+                // Recalculate width if ratio is locked
+                if (cropData.ratio) {
+                    const targetRatio = cropData.ratio.width / cropData.ratio.height;
+                    cropData.width = cropData.height * targetRatio;
+                }
             }
             if (cropData.x + cropData.width > canvas.width) {
                 cropData.width = canvas.width - cropData.x;
+                // Recalculate height if ratio is locked
+                if (cropData.ratio) {
+                    const targetRatio = cropData.ratio.width / cropData.ratio.height;
+                    cropData.height = cropData.width / targetRatio;
+                }
             }
             if (cropData.y + cropData.height > canvas.height) {
                 cropData.height = canvas.height - cropData.y;
+                // Recalculate width if ratio is locked
+                if (cropData.ratio) {
+                    const targetRatio = cropData.ratio.width / cropData.ratio.height;
+                    cropData.width = cropData.height * targetRatio;
+                }
             }
             
             // Minimum size
