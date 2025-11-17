@@ -16,6 +16,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="calculator">Calculator</button>
             <button class="tab-btn" data-tab="editor">Image Editor</button>
+            <button class="tab-btn" data-tab="video">Video Editor</button>
         </div>
 
         <div class="tab-content active" id="calculator">
@@ -187,9 +188,110 @@
                 </div>
             </div>
         </div>
+
+        <div class="tab-content" id="video">
+            <div class="video-editor-container">
+                <div class="upload-section">
+                    <div class="upload-box" id="videoUploadBox">
+                        <input type="file" id="videoInput" accept="video/*" hidden>
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7"/>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                        </svg>
+                        <h3>Upload Video</h3>
+                        <p>Click to select or drag and drop</p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Supports MP4, WebM, MOV, and more</p>
+                    </div>
+                </div>
+
+                <div class="video-editor-main" id="videoEditorMain" style="display: none;">
+                    <div class="video-sidebar">
+                        <div class="card">
+                            <h2>Video Info</h2>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Dimensions</span>
+                                    <span class="info-value" id="videoSize">—</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Duration</span>
+                                    <span class="info-value" id="videoDuration">—</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Aspect Ratio</span>
+                                    <span class="info-value" id="videoRatio">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>Speed Control</h2>
+                            <div class="speed-controls">
+                                <button class="speed-btn" data-speed="0.25">0.25×</button>
+                                <button class="speed-btn" data-speed="0.5">0.5×</button>
+                                <button class="speed-btn" data-speed="0.75">0.75×</button>
+                                <button class="speed-btn active" data-speed="1">1×</button>
+                                <button class="speed-btn" data-speed="1.25">1.25×</button>
+                                <button class="speed-btn" data-speed="1.5">1.5×</button>
+                                <button class="speed-btn" data-speed="2">2×</button>
+                                <button class="speed-btn" data-speed="4">4×</button>
+                            </div>
+                            <div class="custom-speed">
+                                <label>Custom Speed</label>
+                                <input type="number" id="customSpeed" placeholder="e.g., 1.75" min="0.1" max="10" step="0.1">
+                                <button id="applyCustomSpeed" class="btn-secondary">Apply</button>
+                            </div>
+                            <div class="speed-info">
+                                <span class="info-label">Current Speed</span>
+                                <span class="info-value" id="currentSpeed">1×</span>
+                                <span class="info-label" style="margin-top: 0.5rem;">New Duration</span>
+                                <span class="info-value" id="newDuration">—</span>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>Crop Video</h2>
+                            <div class="crop-ratios" id="videoCropRatios"></div>
+                            <button id="resetVideoCrop" class="btn-secondary" style="width: 100%; margin-top: 1rem;">Reset Crop</button>
+                        </div>
+
+                        <div class="card">
+                            <h2>Export</h2>
+                            <div class="export-info">
+                                <p class="help-text">Processing may take a few moments depending on video length and settings.</p>
+                            </div>
+                            <button id="processVideo" class="btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Process & Download</button>
+                            <button id="newVideoBtn" class="btn-secondary" style="width: 100%;">Upload New Video</button>
+                            <div id="processingStatus" class="processing-status" style="display: none;">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <p id="statusText">Processing...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="video-preview-container">
+                        <div class="video-wrapper" id="videoWrapper">
+                            <video id="videoPreview" controls></video>
+                            <div class="video-crop-overlay" id="videoCropOverlay" style="display: none;">
+                                <div class="crop-box" id="videoCropBox">
+                                    <div class="crop-handle nw"></div>
+                                    <div class="crop-handle ne"></div>
+                                    <div class="crop-handle sw"></div>
+                                    <div class="crop-handle se"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
     <script src="editor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js"></script>
+    <script src="video-editor.js"></script>
 </body>
 </html>
