@@ -788,6 +788,133 @@ input[type="range"]::-moz-range-thumb:hover {
     margin-bottom: 1rem;
 }
 
+/* Image Resizer */
+.resizer-container {
+    width: 100%;
+}
+
+#resizerMain {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.resizer-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.resizer-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.preview-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.preview-wrapper {
+    margin-top: 0.5rem;
+}
+
+.resize-method-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.method-btn {
+    flex: 1;
+    padding: 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.method-btn:hover {
+    background: var(--bg-hover);
+}
+
+.method-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.resize-percentage,
+.resize-dimensions,
+.resize-filesize {
+    margin-top: 1rem;
+}
+
+.output-format,
+.quality-control {
+    margin-bottom: 1rem;
+}
+
+.output-format select {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    margin-top: 0.5rem;
+}
+
+.preset-resize-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.preset-resize-btn {
+    padding: 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preset-resize-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
+
+.btn-lock {
+    padding: 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-lock.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.btn-lock svg {
+    color: inherit;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     h1 {
@@ -838,5 +965,14 @@ input[type="range"]::-moz-range-thumb:hover {
 
     .video-preview-container {
         order: 1;
+    }
+
+    .resizer-controls {
+        grid-template-columns: 1fr !important;
+    }
+
+    .calculator-controls-top,
+    .calculator-controls-bottom {
+        grid-template-columns: 1fr !important;
     }
 }
