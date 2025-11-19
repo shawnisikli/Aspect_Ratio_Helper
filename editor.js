@@ -43,7 +43,7 @@ function initEditor() {
     // Paste handler (Ctrl+V)
     document.addEventListener('paste', handlePaste);
     
-    // Drag and drop
+    // Drag and drop - Upload box
     uploadBox.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadBox.style.borderColor = 'var(--accent)';
@@ -56,6 +56,23 @@ function initEditor() {
     uploadBox.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadBox.style.borderColor = 'var(--border)';
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            loadImage(file);
+        }
+    });
+
+    // Drag and drop - Editor tab (entire area)
+    const editorTab = document.getElementById('editor');
+    editorTab.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+    });
+    
+    editorTab.addEventListener('drop', (e) => {
+        e.preventDefault();
         const file = e.dataTransfer.files[0];
         if (file && file.type.startsWith('image/')) {
             loadImage(file);

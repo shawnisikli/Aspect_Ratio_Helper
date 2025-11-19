@@ -45,6 +45,23 @@ function init() {
     attachEventListeners();
     attachMultiplierListeners();
     setDefaultValues();
+    setupGlobalDragDrop();
+}
+
+function setupGlobalDragDrop() {
+    // Prevent default drag behavior on entire document
+    document.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+        }
+    });
+    
+    document.addEventListener('drop', (e) => {
+        // Only prevent default if not already handled by specific handlers
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+        }
+    });
 }
 
 function renderPresetRatios() {

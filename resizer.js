@@ -88,6 +88,30 @@ function initResizer() {
     
     // Paste support
     document.addEventListener('paste', handleResizerPaste);
+
+    // Drag and drop - Resizer tab (entire area)
+    const resizerTab = document.getElementById('resizer');
+    resizerTab.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+    });
+    
+    resizerTab.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (batchMode) {
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            if (files.length > 0) {
+                loadBatchImages(files);
+            }
+        } else {
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadResizerImage(file);
+            }
+        }
+    });
     
     // Method buttons
     document.querySelectorAll('.method-btn').forEach(btn => {
@@ -169,6 +193,7 @@ function initResizer() {
         } else if (batchWidth.value && batchHeight.value) {
             batchTargetRatio = batchWidth.value / batchHeight.value;
         }
+        updateUpscaleWarnings();
     });
     
     batchHeight.addEventListener('input', () => {
@@ -177,6 +202,7 @@ function initResizer() {
         } else if (batchWidth.value && batchHeight.value) {
             batchTargetRatio = batchWidth.value / batchHeight.value;
         }
+        updateUpscaleWarnings();
     });
     
     batchQuality.addEventListener('input', () => {
@@ -189,6 +215,7 @@ function initResizer() {
             batchWidth.value = btn.dataset.width;
             batchHeight.value = btn.dataset.height;
             batchTargetRatio = batchWidth.value / batchHeight.value;
+            updateUpscaleWarnings();
         });
     });
     
@@ -356,6 +383,26 @@ function handleBatchUpload(e) {
     }
 }
 
+function updateUpscaleWarnings() {
+    const targetWidth = parseInt(document.getElementById('batchWidth').value);
+    const targetHeight = parseInt(document.getElementById('batchHeight').value);
+    
+    if (!targetWidth || !targetHeight) return;
+    
+    document.querySelectorAll('.batch-image-item').forEach(item => {
+        const imgWidth = parseInt(item.dataset.width);
+        const imgHeight = parseInt(item.dataset.height);
+        
+        if (imgWidth && imgHeight) {
+            const willUpscale = imgWidth < targetWidth || imgHeight < targetHeight;
+            const detailsEl = item.querySelector('.batch-image-details');
+            const currentText = detailsEl.textContent.split('•')[0] + '• ' + detailsEl.textContent.split('•')[1].split('⚠️')[0].trim();
+            const upscaleWarning = willUpscale ? ' <span style="color: var(--accent-light);">⚠️ Will upscale</span>' : '';
+            detailsEl.innerHTML = currentText + upscaleWarning;
+        }
+    });
+}
+
 function loadBatchImages(files) {
     batchFiles = files;
     batchProcessedBlobs = [];
@@ -376,17 +423,24 @@ function loadBatchImages(files) {
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
+                const targetWidth = parseInt(document.getElementById('batchWidth').value) || 1024;
+                const targetHeight = parseInt(document.getElementById('batchHeight').value) || 1024;
+                const willUpscale = img.width < targetWidth || img.height < targetHeight;
+                const upscaleWarning = willUpscale ? ' <span style="color: var(--accent-light);">⚠️ Will upscale</span>' : '';
+                
                 const item = document.createElement('div');
                 item.className = 'batch-image-item';
                 item.innerHTML = `
                     <img src="${e.target.result}" class="batch-image-thumb">
                     <div class="batch-image-info">
                         <div class="batch-image-name">${file.name}</div>
-                        <div class="batch-image-details">${img.width} × ${img.height} px • ${formatFileSize(file.size)}</div>
+                        <div class="batch-image-details">${img.width} × ${img.height} px • ${formatFileSize(file.size)}${upscaleWarning}</div>
                     </div>
                     <span class="batch-image-status pending">Pending</span>
                 `;
                 item.dataset.index = index;
+                item.dataset.width = img.width;
+                item.dataset.height = img.height;
                 listContainer.appendChild(item);
             };
             img.src = e.target.result;
