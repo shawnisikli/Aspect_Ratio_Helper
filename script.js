@@ -343,15 +343,18 @@ function updateRatioInfo() {
     document.getElementById('decimalRatio').textContent = decimal;
     
     // Orientation
-    let orientation;
-    if (width === height) {
-        orientation = '■ Square';
-    } else if (width > height) {
-        orientation = '▭ Landscape';
-    } else {
-        orientation = '▯ Portrait';
+    const orientationEl = document.getElementById('orientation');
+    if (orientationEl) {
+        let orientation;
+        if (width === height) {
+            orientation = '■ Square';
+        } else if (width > height) {
+            orientation = '▭ Landscape';
+        } else {
+            orientation = '▯ Portrait';
+        }
+        orientationEl.textContent = orientation;
     }
-    document.getElementById('orientation').textContent = orientation;
 }
 
 function matchRatioPreset(width, height) {
