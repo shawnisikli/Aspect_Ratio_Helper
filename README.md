@@ -19,6 +19,14 @@ A modern web-based tool for calculating and maintaining aspect ratios for images
 - **Interactive Cropping**: Drag and resize crop area with handles
 - **Download**: Export cropped images as PNG
 
+### Image Resizer
+- **Multiple Resize Methods**: Scale by percentage, set specific dimensions, or target file size
+- **Format Conversion**: Export as JPEG, PNG, or WebP with quality control
+- **Dimension Presets**: Quick resize to 1080p, 720p, 800×600, 640×480
+- **Aspect Ratio Lock**: Maintain proportions when resizing
+- **Compression Stats**: Real-time file size comparison and reduction percentage
+- **Side-by-Side Preview**: Compare original and resized images before download
+
 ### Video Editor
 - **Speed Control**: Slow down (0.25×, 0.5×, 0.75×) or speed up (1.25×, 1.5×, 2×, 4×) videos
 - **Custom Speed**: Set any custom speed multiplier
@@ -59,7 +67,7 @@ Alternatively, you can use any other local server like:
 - PHP: `php -S localhost:8000`
 - VS Code: Install "Live Server" extension
 
-**Note**: The image editor and calculator work when opening the HTML file directly, but video processing requires the local server and FFmpeg files.
+**Note**: The calculator, image editor, and image resizer work when opening the HTML file directly, but video processing requires the local server and FFmpeg files.
 
 ## Technologies
 
